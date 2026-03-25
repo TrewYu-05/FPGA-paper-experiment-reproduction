@@ -56,7 +56,7 @@ def main():
         dataset_name = file_name.replace('.mat', '')
         auc_results.append({
             'Dataset': dataset_name,
-            'Best AUC': best_auc,
+            'Best AUC': round(best_auc,3),
             'Best Sigma': best_sigma
         })
         

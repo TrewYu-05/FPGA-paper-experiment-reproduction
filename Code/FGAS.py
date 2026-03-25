@@ -26,7 +26,7 @@ def FGAS(data, sigma):
         temp = sim.sum(axis=1) / n
         Dis += squareform(pdist(temp.reshape(-1, 1)))
 
-    A = Dis
+    A = Dis# Distance D
     diag_A = A.sum(axis=1)
     B = np.diag(diag_A)
     # P = np.linalg.inv(B) @ A
