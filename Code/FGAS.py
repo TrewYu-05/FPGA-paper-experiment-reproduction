@@ -20,7 +20,7 @@ def FGAS(data, sigma):
     n, m = data.shape
     phi = np.zeros(n)
     Dis = np.zeros((n, n))
-    for j in range(m):
+    for j in range(m):# for every a in A
         sim = 1 - squareform(pdist(data[:, j].reshape(-1, 1), 'cityblock'))
         sim[sim < sigma] = 0
         temp = sim.sum(axis=1) / n
@@ -48,8 +48,9 @@ def FGAS(data, sigma):
     return AS
 
 if __name__ == "__main__":
-    load_data = loadmat('Example.mat')
-    trandata = load_data['Example']
+    load_data = loadmat('Datasets\cardio.mat')
+    trandata = load_data['trandata']
+    print(trandata)
     scaler = MinMaxScaler()
     trandata = scaler.fit_transform(trandata)
 
