@@ -35,6 +35,11 @@ def main():
     if n_datasets != 15:
         print(f"Warning: Found {n_datasets} .mat files, expected 15.")
 
+    # 提前定义好输出文件的路径
+    base_dir = "Results"
+    output_png = os.path.join(base_dir, "ROC_Curves_All.png")
+    output_csv = os.path.join(base_dir, "AUC_Results_All.csv")
+
     fig, axes = plt.subplots(5, 3, figsize=(20, 25))
     axes = axes.flatten()
 
@@ -198,22 +203,27 @@ def main():
             ax.set_title(f'{dataset_name}')
             ax.legend(loc="lower right", prop={'size': 6})
 
-    plt.tight_layout()
-    output_png = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ROC_Curves.png")
-    plt.savefig(output_png, dpi=300)
+        try:
+            fig.tight_layout()
+        except Exception:
+            pass # 忽略空白子图可能带来的 tight_layout 警告
+        fig.savefig(output_png, dpi=300)
 
-    df_auc = pd.DataFrame(auc_results)
-    cols = ['Dataset'] + algorithms
-    df_auc = df_auc[cols]
+        df_auc = pd.DataFrame(auc_results)
+        cols = ['Dataset'] + algorithms
+        available_cols = [c for c in cols if c in df_auc.columns]
+        df_auc = df_auc[available_cols]
+        df_auc.to_csv(output_csv, index=False)
 
-    print("\nBest AUC Results Table:")
+        print(f"--> [Success] File updated: {dataset_name} completed. Saved to PNG and CSV.\n")
+
+    # 全部循环结束后，打印一次最终表格确认
+    print("\n" + "="*50)
+    print("ALL DATASETS COMPLETED. Final Best AUC Results Table:")
     print("-" * 100)
     print(df_auc.to_string(index=False))
     print("-" * 100)
-
-    output_csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), "AUC_Results.csv")
-    df_auc.to_csv(output_csv, index=False)
-    print(f"Results saved to {output_csv} and {output_png}")
+    print(f"Results finalized in {output_csv} and {output_png}")
 
 if __name__ == "__main__":
     main()
