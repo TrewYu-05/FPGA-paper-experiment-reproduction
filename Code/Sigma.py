@@ -70,7 +70,9 @@ def main():
     plt.grid(True)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
-    plt.savefig(os.path.join(os.path.dirname(os.path.abspath(__file__)), "Sigma_Plot_1.png"), dpi=300)
+    results_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Results")
+    os.makedirs(results_dir, exist_ok=True)
+    plt.savefig(os.path.join(results_dir, "Sigma_Plot_1.png"), dpi=300)
     plt.close()
 
     plt.figure(figsize=(10, 6))
@@ -82,7 +84,9 @@ def main():
     plt.grid(True)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
-    plt.savefig(os.path.join(os.path.dirname(os.path.abspath(__file__)), "Sigma_Plot_2.png"), dpi=300)
+    results_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Results")
+    os.makedirs(results_dir, exist_ok=True)
+    plt.savefig(os.path.join(results_dir, "Sigma_Plot_2.png"), dpi=300)
     plt.close()
 
 if __name__ == "__main__":
