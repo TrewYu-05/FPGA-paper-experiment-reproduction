@@ -14,23 +14,25 @@ from pyod.models.knn import KNN
 from pyod.models.cof import COF
 # from pyod.models.iforest import IForest
 from pyod.models.ecod import ECOD
-from pyod.models.abod import ABOD
+
+# PyNomaly for LoOP
 from PyNomaly import LocalOutlierProbability
+
 from FGAS import FGAS
 from baseline import DIS, ODIN, LDOF, OutRanka, WNINOD, INFLO, FastABOD, kNN, IForest
 from cdrod import DCROD
 
 def main():
     datasets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Datasets")
+    if not os.path.exists(datasets_dir):
+        datasets_dir = "Datasets"
 
     mat_files = [f for f in os.listdir(datasets_dir) if f.endswith('.mat')]
     mat_files.sort()
 
     n_datasets = len(mat_files)
-
-    base_dir = "Results"
-    output_png = os.path.join(base_dir, "ROC_Curves.png")
-    output_csv = os.path.join(base_dir, "AUC_Results.csv")
+    if n_datasets != 15:
+        print(f"Warning: Found {n_datasets} .mat files, expected 15.")
 
     fig, axes = plt.subplots(5, 3, figsize=(20, 25))
     axes = axes.flatten()
@@ -83,15 +85,12 @@ def main():
 
             if algo_name in ['COF', 'FastABOD', 'INFLO', 'kNN', 'LoOP', 'DCROD', 'ODIN', 'LDOF', 'OutRanka']:
                 for k in valid_k_values:
-                    k = int(k)
                     try:
                         if algo_name == 'kNN':
                             clf = kNN(n_neighbors=k)
                             clf.fit(X_scaled)
                             scores = clf.decision_scores_
                         elif algo_name == 'COF':
-                            if k < 2:
-                                continue  # COF 需要 K>=2
                             clf = COF(n_neighbors=k)
                             clf.fit(X_scaled)
                             scores = clf.decision_scores_
@@ -104,7 +103,6 @@ def main():
                             clf.fit(X_scaled)
                             scores = clf.decision_scores_
                         elif algo_name == 'LoOP':
-                            # PyNomaly requires standard LocalOutlierProbability(X, n_neighbors)
                             clf = LocalOutlierProbability(X_scaled, n_neighbors=k).fit()
                             scores = clf.local_outlier_probabilities
                         elif algo_name == 'DCROD':
@@ -198,27 +196,24 @@ def main():
             ax.set_title(f'{dataset_name}')
             ax.legend(loc="lower right", prop={'size': 6})
 
-        try:
-            fig.tight_layout()
-        except Exception:
-            pass
-        fig.savefig(output_png, dpi=300)
+    plt.tight_layout()
+    results_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Results")
+    os.makedirs(results_dir, exist_ok=True)
+    output_png = os.path.join(results_dir, "ROC_Curves.png")
+    plt.savefig(output_png, dpi=300)
 
-        df_auc = pd.DataFrame(auc_results)
-        cols = ['Dataset'] + algorithms
-        available_cols = [c for c in cols if c in df_auc.columns]
-        df_auc = df_auc[available_cols]
-        df_auc.to_csv(output_csv, index=False)
+    df_auc = pd.DataFrame(auc_results)
+    cols = ['Dataset'] + algorithms
+    df_auc = df_auc[cols]
 
-        print(f"--> [Success] File updated: {dataset_name} completed. Saved to PNG and CSV.\n")
-
-    # 全部循环结束后，打印一次最终表格确认
-    print("\n" + "="*50)
-    print("ALL DATASETS COMPLETED. Final Best AUC Results Table:")
+    print("\nBest AUC Results Table:")
     print("-" * 100)
     print(df_auc.to_string(index=False))
     print("-" * 100)
-    print(f"Results finalized in {output_csv} and {output_png}")
+
+    output_csv = os.path.join(results_dir, "AUC_Results.csv")
+    df_auc.to_csv(output_csv, index=False)
+    print(f"Results saved to {output_csv} and {output_png}")
 
 if __name__ == "__main__":
     main()
