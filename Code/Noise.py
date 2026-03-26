@@ -11,11 +11,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from FGAS import FGAS
 
 def inject_noise(X, noise_ratio):
-    """
-    Inject attribute noise according to strategy:
-    For each attribute, select ceil(x * n) samples randomly.
-    Replace their values with a random value between the min and max of that attribute.
-    """
     n, m = X.shape
     X_noisy = X.copy()
 
@@ -43,8 +38,6 @@ def main():
     mat_files.sort()
 
     n_datasets = len(mat_files)
-    if n_datasets != 15:
-        print(f"Warning: Found {n_datasets} .mat files, expected 15.")
 
     noise_levels = np.arange(0.0, 1.1, 0.1)
     results = {}
@@ -86,7 +79,7 @@ def main():
             except Exception as e:
                 pass
 
-        print(f"  Best sigma found: {best_sigma:.2f} (clean AUC: {best_auc:.4f})")
+        # print(f"  Best sigma found: {best_sigma:.2f} (clean AUC: {best_auc:.4f})")
         sys.stdout.flush()
 
         for noise_ratio in noise_levels:
