@@ -1,18 +1,21 @@
 import numpy as np
 import pandas as pd
 from sklearn.neighbors import NearestNeighbors
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import pdist, squareform, cdist
 from sklearn.metrics.pairwise import cosine_similarity
 import warnings
 
 def DIS(X, k=5):
     """
     Distance-based Outlier Detection.
+    Computes the average distance to the k nearest neighbors.
+    Often standard k-NN outlier is distance to k-th neighbor, but DIS can be average distance.
     """
     nn = NearestNeighbors(n_neighbors=k+1)
     nn.fit(X)
     distances, _ = nn.kneighbors(X)
-    return distances[:, -1]
+    # Average distance to the k neighbors (excluding self which is at index 0)
+    return np.mean(distances[:, 1:], axis=1)
 
 def ODIN(X, k=5):
     """
@@ -178,7 +181,6 @@ def WNINOD(X, h=2):
 class INFLO:
     """
     INFLO implemented using scikit-learn's NearestNeighbors.
-    Influenced Outlierness (INFLO) considers both k-NN and reverse k-NN.
     """
     def __init__(self, n_neighbors=5):
         self.n_neighbors = n_neighbors
@@ -189,20 +191,15 @@ class INFLO:
         distances, indices = nn.kneighbors(X)
 
         n_samples = X.shape[0]
-        # Calculate local reachability density (1 / average distance to k-NN)
         lrd = np.zeros(n_samples)
         for i in range(n_samples):
-            # Reachability distance in INFLO paper max(k-dist(j), dist(i, j))
-            # However, PyOD uses exact distances in some cases or max.
-            # Using max(k-dist(j), dist(i,j)) for reachability distance:
             reach_dist = np.maximum(distances[indices[i, 1:], -1], distances[i, 1:])
             sum_reach_dist = np.sum(reach_dist)
             if sum_reach_dist > 0:
                 lrd[i] = self.n_neighbors / sum_reach_dist
             else:
-                lrd[i] = 1e10 # Very high density if duplicate points
+                lrd[i] = 1e10
 
-        # INFLO computes reverse nearest neighbors
         from collections import defaultdict
         rnn = defaultdict(list)
         for i in range(n_samples):
@@ -211,10 +208,177 @@ class INFLO:
 
         self.decision_scores_ = np.zeros(n_samples)
         for i in range(n_samples):
-            # Influence space: kNN union RNN
             is_space = list(set(list(indices[i, 1:]) + rnn[i]))
             if len(is_space) > 0:
                 self.decision_scores_[i] = np.mean(lrd[is_space]) / lrd[i]
             else:
                 self.decision_scores_[i] = 1.0
+        return self
+
+
+class COF:
+    """
+    Connectivity-Based Outlier Factor.
+    """
+    def __init__(self, n_neighbors=5):
+        self.n_neighbors = n_neighbors
+
+    def fit(self, X):
+        n_samples = X.shape[0]
+        self.decision_scores_ = np.zeros(n_samples)
+
+        # Avoid k >= n
+        k = min(self.n_neighbors, n_samples - 1)
+        if k <= 0:
+            return self
+
+        dist_matrix = squareform(pdist(X))
+
+        for i in range(n_samples):
+            # SBN path
+            sbn_path = [i]
+            sbn_path_set = set([i])
+            sbn_dist = []
+
+            # Find k neighbors sequentially
+            while len(sbn_path) <= k:
+                min_dist = np.inf
+                next_node = -1
+                # Find the closest point outside sbn_path to any point inside sbn_path
+                for u in sbn_path:
+                    # Distances from u to all points
+                    dists = dist_matrix[u]
+                    # We want the closest point not in sbn_path
+                    for v in range(n_samples):
+                        if v not in sbn_path_set and dists[v] < min_dist:
+                            min_dist = dists[v]
+                            next_node = v
+
+                if next_node != -1:
+                    sbn_path.append(next_node)
+                    sbn_path_set.add(next_node)
+                    sbn_dist.append(min_dist)
+                else:
+                    break
+
+            # Compute cost
+            sbn_dist = np.array(sbn_dist)
+            if len(sbn_dist) > 0:
+                weights = np.arange(len(sbn_dist), 0, -1)
+                ac_dist = np.sum(weights * sbn_dist) / np.sum(weights)
+                self.decision_scores_[i] = ac_dist
+
+        # Calculate local connectivity factor
+        nn = NearestNeighbors(n_neighbors=k+1)
+        nn.fit(X)
+        _, indices = nn.kneighbors(X)
+
+        cof_scores = np.zeros(n_samples)
+        for i in range(n_samples):
+            knn_ac_dists = self.decision_scores_[indices[i, 1:]]
+            ac_p = self.decision_scores_[i]
+            if np.mean(knn_ac_dists) > 0:
+                cof_scores[i] = (k * ac_p) / np.sum(knn_ac_dists)
+            else:
+                cof_scores[i] = 0.0
+
+        self.decision_scores_ = cof_scores
+        return self
+
+class FastABOD:
+    """
+    Fast Angle-Based Outlier Detection.
+    """
+    def __init__(self, n_neighbors=5):
+        self.n_neighbors = n_neighbors
+
+    def fit(self, X):
+        n_samples = X.shape[0]
+        self.decision_scores_ = np.zeros(n_samples)
+
+        k = min(self.n_neighbors, n_samples - 1)
+        if k < 2:
+            return self
+
+        nn = NearestNeighbors(n_neighbors=k+1)
+        nn.fit(X)
+        _, indices = nn.kneighbors(X)
+
+        for i in range(n_samples):
+            knn_idx = indices[i, 1:]
+            angles = []
+
+            # Extract points
+            A = X[knn_idx] - X[i]
+
+            # Compute pairwise dot products and norms
+            # We want angle variance: dot(a, b) / (norm(a)*norm(b))^2 or similar.
+            # Classic ABOD score for a pair (a,b) is <a,b> / (||a||^2 ||b||^2)
+            # Or <a,b> / (||a||^2 ||b||^2) or variance of angles?
+            # In ABOD paper, ABOF is the variance of the angle weights.
+            # Angle weight = <AB, AC> / (||AB||^2 * ||AC||^2)
+
+            for u in range(k):
+                for v in range(u+1, k):
+                    AB = A[u]
+                    AC = A[v]
+
+                    norm_AB_sq = np.dot(AB, AB)
+                    norm_AC_sq = np.dot(AC, AC)
+
+                    if norm_AB_sq > 0 and norm_AC_sq > 0:
+                        weight = np.dot(AB, AC) / (norm_AB_sq * norm_AC_sq)
+                        angles.append(weight)
+
+            if len(angles) > 1:
+                # ABOF is the variance of these weights
+                abof = np.var(angles)
+            else:
+                abof = 0.0
+
+            # Inverse of ABOF is the outlier score (smaller variance -> more anomalous)
+            if abof > 0:
+                self.decision_scores_[i] = 1.0 / (abof + 1e-10)
+            else:
+                self.decision_scores_[i] = 1e10
+
+        return self
+
+
+class kNN:
+    """
+    Standard k-Nearest Neighbors Outlier Detection.
+    Returns distance to the k-th nearest neighbor.
+    """
+    def __init__(self, n_neighbors=5):
+        self.n_neighbors = n_neighbors
+
+    def fit(self, X):
+        k = min(self.n_neighbors, X.shape[0] - 1)
+        if k < 1:
+            self.decision_scores_ = np.zeros(X.shape[0])
+            return self
+
+        nn = NearestNeighbors(n_neighbors=k+1)
+        nn.fit(X)
+        distances, _ = nn.kneighbors(X)
+        self.decision_scores_ = distances[:, -1]
+        return self
+
+from sklearn.ensemble import IsolationForest
+
+class IForest:
+    """
+    Isolation Forest wrapper.
+    """
+    def __init__(self, n_estimators=100, random_state=42):
+        self.n_estimators = n_estimators
+        self.random_state = random_state
+
+    def fit(self, X):
+        clf = IsolationForest(n_estimators=self.n_estimators, random_state=self.random_state)
+        clf.fit(X)
+        # decision_function returns positive for inliers and negative for outliers.
+        # we negate it so higher score = more anomalous
+        self.decision_scores_ = -clf.decision_function(X)
         return self

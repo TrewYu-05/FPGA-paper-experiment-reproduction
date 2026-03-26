@@ -15,8 +15,10 @@ def main():
     mat_files.sort()
 
     n_datasets = len(mat_files)
+    if n_datasets != 15:
+        print(f"Warning: Found {n_datasets} .mat files, expected 15.")
 
-    sigma_values = np.arange(0.0, 1.00, 0.05)
+    sigma_values = np.arange(0.0, 1.05, 0.05)
 
     results = {}
 
@@ -66,7 +68,7 @@ def main():
     plt.ylabel('AUC')
     plt.title('FGAS AUC vs. Sigma (Datasets 1-8)')
     plt.grid(True)
-    plt.legend(bbox_to_anchor=(1.00, 1), loc='upper left')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
     plt.savefig(os.path.join(os.path.dirname(os.path.abspath(__file__)), "Sigma_Plot_1.png"), dpi=300)
     plt.close()
@@ -78,7 +80,7 @@ def main():
     plt.ylabel('AUC')
     plt.title('FGAS AUC vs. Sigma (Datasets 9-15)')
     plt.grid(True)
-    plt.legend(bbox_to_anchor=(1.00, 1), loc='upper left')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
     plt.savefig(os.path.join(os.path.dirname(os.path.abspath(__file__)), "Sigma_Plot_2.png"), dpi=300)
     plt.close()

@@ -10,17 +10,13 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-from pyod.models.knn import KNN
-from pyod.models.cof import COF
-from pyod.models.iforest import IForest
 from pyod.models.ecod import ECOD
-from pyod.models.abod import ABOD
 
 # PyNomaly for LoOP
 from PyNomaly import LocalOutlierProbability
 
 from FGAS import FGAS
-from baseline import DIS, ODIN, LDOF, OutRanka, WNINOD, INFLO
+from baseline import DIS, ODIN, LDOF, OutRanka, WNINOD, INFLO, COF, FastABOD, kNN, IForest
 from cdrod import DCROD
 
 def main():
@@ -88,7 +84,7 @@ def main():
                 for k in valid_k_values:
                     try:
                         if algo_name == 'kNN':
-                            clf = KNN(n_neighbors=k)
+                            clf = kNN(n_neighbors=k)
                             clf.fit(X_scaled)
                             scores = clf.decision_scores_
                         elif algo_name == 'COF':
@@ -96,7 +92,7 @@ def main():
                             clf.fit(X_scaled)
                             scores = clf.decision_scores_
                         elif algo_name == 'FastABOD':
-                            clf = ABOD(n_neighbors=k, method='fast')
+                            clf = FastABOD(n_neighbors=k)
                             clf.fit(X_scaled)
                             scores = clf.decision_scores_
                         elif algo_name == 'INFLO':
@@ -104,7 +100,6 @@ def main():
                             clf.fit(X_scaled)
                             scores = clf.decision_scores_
                         elif algo_name == 'LoOP':
-                            # PyNomaly requires standard LocalOutlierProbability(X, n_neighbors)
                             clf = LocalOutlierProbability(X_scaled, n_neighbors=k).fit()
                             scores = clf.local_outlier_probabilities
                         elif algo_name == 'DCROD':
