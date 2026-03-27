@@ -130,7 +130,7 @@ def evaluate_algorithm(algo_name, X_scaled, y_true, valid_k_values, h_values, si
         queue.put((-1, None, None))
 
 def main():
-    TIMEOUT_SECONDS = 600
+    TIMEOUT_SECONDS = 1000
 
     datasets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Datasets")
     if not os.path.exists(datasets_dir):

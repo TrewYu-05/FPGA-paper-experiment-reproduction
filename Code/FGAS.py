@@ -26,7 +26,7 @@ def FGAS(data, sigma):
         temp = sim.sum(axis=1) / n
         Dis += squareform(pdist(temp.reshape(-1, 1)))
 
-    A = Dis# Distance D
+    A = Dis # Distance D
     diag_A = A.sum(axis=1)
     B = np.diag(diag_A)
     # P = np.linalg.inv(B) @ A
@@ -48,8 +48,8 @@ def FGAS(data, sigma):
     return AS
 
 if __name__ == "__main__":
-    load_data = loadmat('Datasets\cardio.mat')
-    trandata = load_data['trandata']
+    load_data = loadmat('Example.mat')
+    trandata = load_data['Example']
     print(trandata)
     scaler = MinMaxScaler()
     trandata = scaler.fit_transform(trandata)

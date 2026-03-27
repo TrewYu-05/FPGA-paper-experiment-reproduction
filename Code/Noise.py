@@ -20,11 +20,18 @@ def inject_noise(X, noise_ratio):
     num_noisy = int(np.ceil(noise_ratio * n))
 
     for j in range(m):
-        col_min = X[:, j].min()
-        col_max = X[:, j].max()
+        col_data = X[:, j]
+        unique_vals = np.unique(col_data)
 
         noisy_indices = np.random.choice(n, num_noisy, replace=False)
-        random_values = np.random.uniform(col_min, col_max, size=num_noisy)
+        # 所以应该怎么判断属性是离散的还是连续的呀
+        is_discrete = len(unique_vals) <= 15 or np.issubdtype(col_data.dtype, np.integer)
+        if is_discrete:
+            random_values = np.random.choice(unique_vals, size=num_noisy)
+        else:
+            col_min = col_data.min()
+            col_max = col_data.max()
+            random_values = np.random.uniform(col_min, col_max, size=num_noisy)
         X_noisy[noisy_indices, j] = random_values
 
     return X_noisy
@@ -39,7 +46,7 @@ def main():
 
     n_datasets = len(mat_files)
 
-    noise_levels = np.arange(0.0, 1.1, 0.1)
+    noise_levels = np.arange(0.0, 0.55, 0.05)
     results = {}
 
     for i, file_name in enumerate(mat_files):
