@@ -6,9 +6,10 @@ import numpy as np
 from scipy.io import loadmat
 from scipy.spatial.distance import pdist, squareform
 from sklearn.preprocessing import MinMaxScaler
+from fractions import Fraction
 
 
-def FGAS(data, sigma):
+def FGAS(data, sigma, sqe='cityblock'):
     # input:
     # data is data matrix without decisions, where rows for samples and columns for attributes.
     # All attributes should be normalized into [0,1]
@@ -21,16 +22,18 @@ def FGAS(data, sigma):
     phi = np.zeros(n)
     Dis = np.zeros((n, n))
     for j in range(m):# for every a in A
-        sim = 1 - squareform(pdist(data[:, j].reshape(-1, 1), 'cityblock'))
+        sim = 1 - squareform(pdist(data[:, j].reshape(-1, 1)))
         sim[sim < sigma] = 0
         temp = sim.sum(axis=1) / n
-        Dis += squareform(pdist(temp.reshape(-1, 1)))
+        Dis += squareform(pdist(temp.reshape(-1, 1), sqe))
+    
 
     A = Dis # Distance D
     diag_A = A.sum(axis=1)
     B = np.diag(diag_A)
     # P = np.linalg.inv(B) @ A
     P = np.linalg.solve(B, A)
+
 
     pi_t = np.ones(n) / n
     pi_t_temp = np.ones(n)
@@ -48,9 +51,8 @@ def FGAS(data, sigma):
     return AS
 
 if __name__ == "__main__":
-    load_data = loadmat('Example.mat')
+    load_data = loadmat('Simplified.mat')
     trandata = load_data['Example']
-    print(trandata)
     scaler = MinMaxScaler()
     trandata = scaler.fit_transform(trandata)
 
