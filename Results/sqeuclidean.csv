@@ -1,0 +1,16 @@
+Dataset,FGAS,FGAS(sqe)
+cardio,0.953,0.95
+diabetes_tested_positive_26_variant1,0.989,0.984
+ecoli,0.955,0.958
+ionosphere_b_24_variant1,1.0,1.0
+iris_Irisvirginica_11_variant1,1.0,0.998
+musk,1.0,1.0
+pageblocks_1_258_variant1,0.96,0.959
+pima_TRUE_55_variant1,0.971,0.963
+satellite,0.0,0.0
+sonar_M_10_variant1,0.995,0.993
+thyroid,0.985,0.982
+wbc_malignant_39_variant1,0.997,0.996
+wdbc_M_39_variant1,0.998,0.997
+wine,0.885,0.899
+wpbc_variant1,0.594,0.57

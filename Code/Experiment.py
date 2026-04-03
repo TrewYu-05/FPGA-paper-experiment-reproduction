@@ -112,10 +112,13 @@ def evaluate_algorithm(algo_name, X_scaled, y_true, valid_k_values, h_values, si
                 except Exception:
                     pass
 
-        elif algo_name == 'FGAS':
+        elif algo_name in ['FGAS(sqe)', 'FGAS']:
             for current_sigma in sigma_values:
                 try:
-                    scores = FGAS(X_scaled, current_sigma)
+                    if algo_name == 'FGAS':
+                        scores = FGAS(X_scaled, current_sigma)
+                    else:
+                        scores = FGAS(X_scaled, current_sigma, 'sqeuclidean')
                     scores = np.nan_to_num(scores)
                     fpr, tpr, _ = roc_curve(y_true, scores)
                     roc_auc = auc(fpr, tpr)
@@ -130,7 +133,7 @@ def evaluate_algorithm(algo_name, X_scaled, y_true, valid_k_values, h_values, si
         queue.put((-1, None, None))
 
 def main():
-    TIMEOUT_SECONDS = 1000
+    TIMEOUT_SECONDS = 3600
 
     datasets_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Datasets")
     if not os.path.exists(datasets_dir):
@@ -150,7 +153,8 @@ def main():
     sigma_values = np.arange(0.05, 1.05, 0.05)
     h_values = np.arange(1, 11, 1)
 
-    algorithms = ['DIS', 'COF', 'FastABOD', 'INFLO', 'kNN', 'LDOF', 'LoOP', 'ODIN', 'DCROD', 'ECOD', 'IForest', 'OutRanka', 'WNINOD', 'FGAS']
+    # algorithms = ['DIS', 'COF', 'FastABOD', 'INFLO', 'kNN', 'LDOF', 'LoOP', 'ODIN', 'DCROD', 'ECOD', 'IForest', 'OutRanka', 'WNINOD', 'FGAS']
+    algorithms = ['FGAS','FGAS(sqe)']
     colors = plt.cm.tab20(np.linspace(0, 1, len(algorithms)))
 
     ctx = multiprocessing.get_context('spawn')
@@ -245,7 +249,7 @@ def main():
     print(df_auc.to_string(index=False))
     print("-" * 100)
 
-    output_csv = os.path.join(results_dir, "AUC_Results.csv")
+    output_csv = os.path.join(results_dir, "sqeuclidean.csv")
     df_auc.to_csv(output_csv, index=False)
     print(f"Results saved to {output_csv} and {output_png}")
 
